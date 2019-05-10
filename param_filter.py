@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 
+from packaging import version
+
 
 def is_not_bias(name):
     return not name.endswith('bias')
@@ -23,7 +25,10 @@ def filtered_parameter_info(model, module_fn=None, module_name_fn=None, paramete
             continue
         if module_name_fn is not None and not module_name_fn(module_name):
             continue
-        for parameter_name, param in module.named_parameters(prefix=module_name, recurse=False):
+        kwargs = {}
+        if version.parse(torch.__version__) >= version.parse("1.0.0"):
+            kwargs['recurse'] = False
+        for parameter_name, param in module.named_parameters(prefix=module_name, **kwargs):
             if parameter_name_fn is not None and not parameter_name_fn(parameter_name):
                 continue
             if param not in memo:
