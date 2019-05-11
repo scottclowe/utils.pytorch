@@ -1,3 +1,5 @@
+from packaging import version
+
 import torch
 import math
 import torch.nn as nn
@@ -11,7 +13,8 @@ def _is_long(x):
     return isinstance(x, torch.LongTensor) or isinstance(x, torch.cuda.LongTensor)
 
 
-def cross_entropy(inputs, target, weight=None, ignore_index=-100, reduction='mean',
+def cross_entropy(inputs, target, weight=None, ignore_index=-100,
+                  reduction='mean' if version.parse(torch.__version__) >= version.parse("1.0.0") else 'elementwise_mean',
                   smooth_eps=None, smooth_dist=None, from_logits=True):
     """cross entropy loss, with support for target distributions and label smoothing https://arxiv.org/abs/1512.00567"""
     smooth_eps = smooth_eps or 0
@@ -58,7 +61,7 @@ def cross_entropy(inputs, target, weight=None, ignore_index=-100, reduction='mea
 
     if reduction == 'sum':
         loss = loss.sum()
-    elif reduction == 'mean':
+    elif reduction == 'mean' or reduction == 'elementwise_mean':
         if masked_indices is None:
             loss = loss.mean()
         else:
@@ -70,7 +73,9 @@ def cross_entropy(inputs, target, weight=None, ignore_index=-100, reduction='mea
 class CrossEntropyLoss(nn.CrossEntropyLoss):
     """CrossEntropyLoss - with ability to recieve distrbution as targets, and optional label smoothing"""
 
-    def __init__(self, weight=None, ignore_index=-100, reduction='mean', smooth_eps=None, smooth_dist=None, from_logits=True):
+    def __init__(self, weight=None, ignore_index=-100,
+                 reduction='mean' if version.parse(torch.__version__) >= version.parse("1.0.0") else 'elementwise_mean',
+                 smooth_eps=None, smooth_dist=None, from_logits=True):
         super(CrossEntropyLoss, self).__init__(weight=weight,
                                                ignore_index=ignore_index, reduction=reduction)
         self.smooth_eps = smooth_eps
@@ -85,7 +90,9 @@ class CrossEntropyLoss(nn.CrossEntropyLoss):
                              smooth_dist=smooth_dist, from_logits=self.from_logits)
 
 
-def binary_cross_entropy(inputs, target, weight=None, reduction='mean', smooth_eps=None, from_logits=False):
+def binary_cross_entropy(inputs, target, weight=None,
+                         reduction='mean' if version.parse(torch.__version__) >= version.parse("1.0.0") else 'elementwise_mean',
+                         smooth_eps=None, from_logits=False):
     """cross entropy loss, with support for label smoothing https://arxiv.org/abs/1512.00567"""
     smooth_eps = smooth_eps or 0
     if smooth_eps > 0:
@@ -97,12 +104,17 @@ def binary_cross_entropy(inputs, target, weight=None, reduction='mean', smooth_e
         return F.binary_cross_entropy(inputs, target, weight=weight, reduction=reduction)
 
 
-def binary_cross_entropy_with_logits(inputs, target, weight=None, reduction='mean', smooth_eps=None, from_logits=True):
+def binary_cross_entropy_with_logits(
+        inputs, target, weight=None,
+        reduction='mean' if version.parse(torch.__version__) >= version.parse("1.0.0") else 'elementwise_mean',
+        smooth_eps=None, from_logits=True):
     return binary_cross_entropy(inputs, target, weight, reduction, smooth_eps, from_logits)
 
 
 class BCELoss(nn.BCELoss):
-    def __init__(self, weight=None, size_average=None, reduce=None, reduction='mean', smooth_eps=None, from_logits=False):
+    def __init__(self, weight=None, size_average=None, reduce=None,
+                 reduction='mean' if version.parse(torch.__version__) >= version.parse("1.0.0") else 'elementwise_mean',
+                 smooth_eps=None, from_logits=False):
         super(BCELoss, self).__init__(weight, size_average, reduce, reduction)
         self.smooth_eps = smooth_eps
         self.from_logits = from_logits
@@ -114,6 +126,8 @@ class BCELoss(nn.BCELoss):
 
 
 class BCEWithLogitsLoss(BCELoss):
-    def __init__(self, weight=None, size_average=None, reduce=None, reduction='mean', smooth_eps=None, from_logits=True):
+    def __init__(self, weight=None, size_average=None, reduce=None,
+                 reduction='mean' if version.parse(torch.__version__) >= version.parse("1.0.0") else 'elementwise_mean',
+                 smooth_eps=None, from_logits=True):
         super(BCEWithLogitsLoss, self).__init__(weight, size_average,
                                                 reduce, reduction, smooth_eps=smooth_eps, from_logits=from_logits)
