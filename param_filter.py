@@ -1,7 +1,7 @@
+from packaging import version
+
 import torch
 import torch.nn as nn
-
-from packaging import version
 
 
 def is_not_bias(name):
